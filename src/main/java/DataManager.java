@@ -42,6 +42,7 @@ public class DataManager {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
                 String country = row.getCell(0).getStringCellValue();
+                if (country == null || country.isEmpty()) continue;
                 Map<String, String> facts = new HashMap<>();
                 for (int j = 1; j < headers.size() && j < row.getLastCellNum(); j++) {
                     Cell cell = row.getCell(j);
@@ -92,13 +93,14 @@ public class DataManager {
                     facts.put(headers.get(j), value);
                 }
                 data.put(country, facts);
+                System.out.println("Geladen: " + country + " mit " + facts.size() + " Fakten.");
             }
         } catch (IOException e) {
             System.out.println("Fehler beim Laden der Excel-Datei: " + e.getMessage());
         }
         catch (Exception e) {
-                            var value = "Fehler beim Lesen: " + e.getMessage();
-              
+                            System.out.println("Fehler beim Lesen: " + e.getMessage());
+//                            throw e;
                         }
         return data;
     }
