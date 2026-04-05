@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class DataManager {
     private final Path excelFile;
@@ -25,20 +27,79 @@ public class DataManager {
 
     private Map<String, Map<String, String>> loadExcelData() {
         Map<String, Map<String, String>> data = new HashMap<>();
-        // Dummy-Daten für Testzwecke
-        Map<String, String> germanyFacts = new HashMap<>();
-        germanyFacts.put("Hauptstadt", "Berlin");
-        germanyFacts.put("Sprache", "Deutsch");
-        germanyFacts.put("Einwohnerzahl", "83000000");
-        data.put("Deutschland", germanyFacts);
-
-        Map<String, String> franceFacts = new HashMap<>();
-        franceFacts.put("Hauptstadt", "Paris");
-        franceFacts.put("Sprache", "Französisch");
-        franceFacts.put("Einwohnerzahl", "67000000");
-        data.put("Frankreich", franceFacts);
-
-        // Füge mehr Dummy-Daten hinzu, wenn nötig
+        if (!Files.exists(excelFile)) {
+            return data;
+        }
+        try (Workbook workbook = new XSSFWorkbook(Files.newInputStream(excelFile))) {
+            Sheet sheet = workbook.getSheetAt(0);
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null) return data;
+            List<String> headers = new ArrayList<>();
+            for (Cell cell : headerRow) {
+                headers.add(cell.getStringCellValue());
+            }
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                String country = row.getCell(0).getStringCellValue();
+                Map<String, String> facts = new HashMap<>();
+                for (int j = 1; j < headers.size() && j < row.getLastCellNum(); j++) {
+                    Cell cell = row.getCell(j);
+                    String value = "";
+                    if (cell != null) {
+                        try {
+                            switch (cell.getCellType()) {
+                                case STRING:
+                                    value = cell.getStringCellValue();
+                                    break;
+                                case NUMERIC:
+                                    if (DateUtil.isCellDateFormatted(cell)) {
+                                        value = cell.getDateCellValue().toString();
+                                    } else {
+                                        value = String.valueOf((int) cell.getNumericCellValue());
+                                    }
+                                    break;
+                                case BOOLEAN:
+                                    value = String.valueOf(cell.getBooleanCellValue());
+                                    break;
+                                case FORMULA:
+                                    // Für Formeln, versuche den berechneten Wert zu bekommen
+                                    switch (cell.getCachedFormulaResultType()) {
+                                        case STRING:
+                                            value = cell.getStringCellValue();
+                                            break;
+                                        case NUMERIC:
+                                            value = String.valueOf((int) cell.getNumericCellValue());
+                                            break;
+                                        case BOOLEAN:
+                                            value = String.valueOf(cell.getBooleanCellValue());
+                                            break;
+                                        default:
+                                            value = cell.getCellFormula();
+                                    }
+                                    break;
+                                case ERROR:
+                                    value = "Fehler in Zelle";
+                                    break;
+                                default:
+                                    value = "";
+                            }
+                        } catch (Exception e) {
+                            value = "Fehler beim Lesen: " + e.getMessage();
+                            throw e;
+                        }
+                    }
+                    facts.put(headers.get(j), value);
+                }
+                data.put(country, facts);
+            }
+        } catch (IOException e) {
+            System.out.println("Fehler beim Laden der Excel-Datei: " + e.getMessage());
+        }
+        catch (Exception e) {
+                            var value = "Fehler beim Lesen: " + e.getMessage();
+              
+                        }
         return data;
     }
 

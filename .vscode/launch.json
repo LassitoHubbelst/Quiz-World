@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch QuizWorldApp",
+            "request": "launch",
+            "mainClass": "QuizWorldApp",
+            "projectName": "quiz-world",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "vmArgs": "-Dfile.encoding=UTF-8"
+        },
+        {
+            "type": "java",
+            "name": "Debug QuizWorldApp",
+            "request": "launch",
+            "mainClass": "QuizWorldApp",
+            "projectName": "quiz-world",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "vmArgs": "-Dfile.encoding=UTF-8",
+            "preLaunchTask": "maven: compile"
+        }
+    ]
+}
