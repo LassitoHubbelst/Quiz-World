@@ -16,8 +16,7 @@ public class DataManager {
     }
 
     public boolean verifyDataFiles() {
-        return Files.exists(excelFile) && Files.isRegularFile(excelFile)
-                && Files.exists(countriesDir) && Files.isDirectory(countriesDir);
+        return Files.exists(countriesDir) && Files.isDirectory(countriesDir);
     }
 
     public List<String> listCountryNames() {
