@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.Map;
 
 public class QuizWorldGUI extends JFrame {
     private DataManager dataManager;
@@ -58,26 +59,27 @@ public class QuizWorldGUI extends JFrame {
     }
 
     private void openViewModeDialog() {
-        String roundCountStr = JOptionPane.showInputDialog(this, "Wie viele Länder sollen in einer Runde geprüft werden?", "1");
-        if (roundCountStr == null) return;
-        int roundCount;
-        try {
-            roundCount = Integer.parseInt(roundCountStr.trim());
-            roundCount = Math.max(1, roundCount);
-        } catch (NumberFormatException e) {
-            roundCount = 1;
+        Map<String, Map<String, String>> allData = dataManager.getAllExcelData();
+        if (allData.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Keine Excel-Daten gefunden.");
+            return;
         }
 
-        for (int i = 0; i < roundCount; i++) {
-            String country = JOptionPane.showInputDialog(this, "Land eingeben:");
-            if (country == null) break;
-            CountryInfo info = dataManager.loadCountryInfo(country.trim());
-            if (info == null) {
-                JOptionPane.showMessageDialog(this, "Land nicht gefunden: " + country);
-                continue;
+        StringBuilder sb = new StringBuilder("=== Alle Länder-Daten ===\n\n");
+        for (Map.Entry<String, Map<String, String>> entry : allData.entrySet()) {
+            sb.append("Land: ").append(entry.getKey()).append("\n");
+            for (Map.Entry<String, String> fact : entry.getValue().entrySet()) {
+                sb.append("  ").append(fact.getKey()).append(": ").append(fact.getValue()).append("\n");
             }
-            showCountryInfo(info);
+            sb.append("\n");
         }
+
+        JTextArea textArea = new JTextArea(sb.toString());
+        textArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(600, 400));
+
+        JOptionPane.showMessageDialog(this, scrollPane, "Daten ansehen", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void openImageQuizDialog() {

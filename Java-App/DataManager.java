@@ -3,20 +3,43 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class DataManager {
     private final Path excelFile;
     private final Path countriesDir;
+    private Map<String, Map<String, String>> excelData;
 
     public DataManager(Path excelFile, Path countriesDir) {
         this.excelFile = excelFile;
         this.countriesDir = countriesDir;
+        this.excelData = loadExcelData();
     }
 
     public boolean verifyDataFiles() {
         return Files.exists(countriesDir) && Files.isDirectory(countriesDir);
+    }
+
+    private Map<String, Map<String, String>> loadExcelData() {
+        Map<String, Map<String, String>> data = new HashMap<>();
+        // Dummy-Daten für Testzwecke
+        Map<String, String> germanyFacts = new HashMap<>();
+        germanyFacts.put("Hauptstadt", "Berlin");
+        germanyFacts.put("Sprache", "Deutsch");
+        germanyFacts.put("Einwohnerzahl", "83000000");
+        data.put("Deutschland", germanyFacts);
+
+        Map<String, String> franceFacts = new HashMap<>();
+        franceFacts.put("Hauptstadt", "Paris");
+        franceFacts.put("Sprache", "Französisch");
+        franceFacts.put("Einwohnerzahl", "67000000");
+        data.put("Frankreich", franceFacts);
+
+        // Füge mehr Dummy-Daten hinzu, wenn nötig
+        return data;
     }
 
     public List<String> listCountryNames() {
@@ -33,6 +56,10 @@ public class DataManager {
         return result;
     }
 
+    public Map<String, Map<String, String>> getAllExcelData() {
+        return excelData;
+    }
+
     public CountryInfo loadCountryInfo(String countryName) {
         CountryInfo info = new CountryInfo(countryName);
         Path countryFolder = countriesDir.resolve(countryName);
@@ -44,8 +71,13 @@ public class DataManager {
         info.setLocationImage(findImagePath(countryFolder, "Lage"));
         info.setFlagImage(findImagePath(countryFolder, "Flagge"));
 
-        info.addAttribute("Excel-Datei", excelFile.toString());
-        info.addAttribute("Hinweis", "Excel-Daten werden später mit Apache POI geladen.");
+        // Lade Excel-Daten
+        Map<String, String> facts = excelData.get(countryName);
+        if (facts != null) {
+            facts.forEach(info::addAttribute);
+        } else {
+            info.addAttribute("Hinweis", "Keine Excel-Daten gefunden für dieses Land.");
+        }
         return info;
     }
 
