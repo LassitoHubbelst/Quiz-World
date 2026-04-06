@@ -2,6 +2,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -66,9 +68,12 @@ public class QuizWorldGUI extends JFrame {
         }
 
         StringBuilder sb = new StringBuilder("=== Alle Länder-Daten ===\n\n");
-        for (Map.Entry<String, Map<String, String>> entry : allData.entrySet()) {
-            sb.append("Land: ").append(entry.getKey()).append("\n");
-            for (Map.Entry<String, String> fact : entry.getValue().entrySet()) {
+        List<String> sortedCountries = new ArrayList<>(allData.keySet());
+        Collections.sort(sortedCountries);
+        for (String country : sortedCountries) {
+            sb.append("Land: ").append(country).append("\n");
+            Map<String, String> facts = allData.get(country);
+            for (Map.Entry<String, String> fact : facts.entrySet()) {
                 sb.append("  ").append(fact.getKey()).append(": ").append(fact.getValue()).append("\n");
             }
             sb.append("\n");
