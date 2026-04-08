@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -9,6 +10,7 @@ import java.util.Map;
 
 public class QuizWorldGUI extends JFrame {
     private DataManager dataManager;
+    private CountryRepository repository;
     private CardLayout cardLayout;
     private JPanel cardPanel;
     private static final String MAIN_MENU = "MainMenu";
@@ -18,6 +20,7 @@ public class QuizWorldGUI extends JFrame {
 
     public QuizWorldGUI(DataManager dataManager) {
         this.dataManager = dataManager;
+        this.repository = dataManager.getRepository();
         initializeUI();
     }
 
@@ -69,29 +72,90 @@ public class QuizWorldGUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        Map<String, Map<String, String>> allData = dataManager.getAllExcelData();
-        if (allData.isEmpty()) {
-            JLabel errorLabel = new JLabel("Keine Excel-Daten gefunden.");
-            panel.add(errorLabel, BorderLayout.CENTER);
-        } else {
-            StringBuilder sb = new StringBuilder("=== Alle Länder-Daten ===\n\n");
-            List<String> sortedCountries = new ArrayList<>(allData.keySet());
-            Collections.sort(sortedCountries);
-            for (String country : sortedCountries) {
-                sb.append("Land: ").append(country).append("\n");
-                Map<String, String> facts = allData.get(country);
-                for (Map.Entry<String, String> fact : facts.entrySet()) {
-                    sb.append("  ").append(fact.getKey()).append(": ").append(fact.getValue()).append("\n");
-                }
-                sb.append("\n");
-            }
+        CountryRepository repository = dataManager.getRepository();
+        
+        // NORD: Suchzeile
+        JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
+        searchPanel.add(new JLabel("Suchfeld:"), BorderLayout.WEST);
+        JTextField searchField = new JTextField();
+        searchPanel.add(searchField, BorderLayout.CENTER);
+        panel.add(searchPanel, BorderLayout.NORTH);
 
-            JTextArea textArea = new JTextArea(sb.toString());
-            textArea.setEditable(false);
-            JScrollPane scrollPane = new JScrollPane(textArea);
-            panel.add(scrollPane, BorderLayout.CENTER);
+        // MITTE: Split-Panel mit Liste und Details
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setDividerLocation(250);
+
+        // LINKS: Länderliste
+        DefaultListModel<String> countryListModel = new DefaultListModel<>();
+        List<String> allCountries = repository.getAllCountryNames();
+        for (String country : allCountries) {
+            countryListModel.addElement(country);
         }
 
+        JList<String> countryList = new JList<>(countryListModel);
+        countryList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane listScrollPane = new JScrollPane(countryList);
+        listScrollPane.setBorder(BorderFactory.createTitledBorder("Länder"));
+        splitPane.setLeftComponent(listScrollPane);
+
+        // RECHTS: Details-Bereich
+        JTextArea detailsArea = new JTextArea();
+        detailsArea.setEditable(false);
+        detailsArea.setLineWrap(true);
+        detailsArea.setWrapStyleWord(true);
+        JScrollPane detailsScrollPane = new JScrollPane(detailsArea);
+        detailsScrollPane.setBorder(BorderFactory.createTitledBorder("Details"));
+        splitPane.setRightComponent(detailsScrollPane);
+
+        splitPane.setVisible(true);
+
+        // Event-Listener: Klick auf Land zeigt Details
+        countryList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selectedCountry = countryList.getSelectedValue();
+                if (selectedCountry != null) {
+                    Country country = repository.getCountry(selectedCountry);
+                    if (country != null) {
+                        detailsArea.setText(country.getFormattedInfo());
+                        detailsArea.setCaretPosition(0);
+                    }
+                }
+            }
+        });
+
+        // Event-Listener: Suchfunktion
+        searchField.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                String searchText = searchField.getText().toLowerCase().trim();
+                countryListModel.clear();
+
+                if (searchText.isEmpty()) {
+                    // Zeige alle, wenn Suchfeld leer
+                    for (String country : allCountries) {
+                        countryListModel.addElement(country);
+                    }
+                } else {
+                    // Filtere nach Suchtext
+                    for (String country : allCountries) {
+                        if (country.toLowerCase().contains(searchText)) {
+                            countryListModel.addElement(country);
+                        }
+                    }
+                }
+
+                // Automatisch erstes Ergebnis wählen
+                if (countryListModel.size() > 0) {
+                    countryList.setSelectedIndex(0);
+                } else {
+                    detailsArea.setText("Keine Länder gefunden.");
+                }
+            }
+        });
+
+        panel.add(splitPane, BorderLayout.CENTER);
+
+        // SÜDEN: Zurück-Button
         JButton backButton = new JButton("Zurück");
         backButton.addActionListener(e -> cardLayout.show(cardPanel, MAIN_MENU));
         panel.add(backButton, BorderLayout.SOUTH);
