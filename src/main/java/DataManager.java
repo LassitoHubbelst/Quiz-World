@@ -14,11 +14,21 @@ public class DataManager {
     private final Path excelFile;
     private final Path countriesDir;
     private Map<String, Map<String, String>> excelData;
+    private final CountryRepository repository;
 
     public DataManager(Path excelFile, Path countriesDir) {
         this.excelFile = excelFile;
         this.countriesDir = countriesDir;
+        this.repository = new CountryRepository();
         this.excelData = loadExcelData();
+        loadAllCountries();
+    }
+
+    /**
+     * Gibt das Repository zurück (Zugriff auf strukturierte Länder und Kategorien)
+     */
+    public CountryRepository getRepository() {
+        return repository;
     }
 
     public boolean verifyDataFiles() {
@@ -123,7 +133,50 @@ public class DataManager {
         return excelData;
     }
 
-    public CountryInfo loadCountryInfo(String countryName) {
+    /**
+     * Lädt alle Länder aus den Verzeichnissen und Excel-Daten in das Repository
+     */
+    private void loadAllCountries() {
+        List<String> countryNames = listCountryNames();
+        for (String countryName : countryNames) {
+            Country country = loadCountryInfo(countryName);
+            if (country != null) {
+                repository.addCountry(country);
+            }
+        }
+        System.out.println("Geladen: " + repository.getCountryCount() + " Länder in das Repository.");
+    }
+
+    /**
+     * Lädt ein einzelnes Land mit allen seinen Daten
+     */
+    public Country loadCountryInfo(String countryName) {
+        Country country = new Country(countryName);
+        Path countryFolder = countriesDir.resolve(countryName);
+        if (!Files.isDirectory(countryFolder)) {
+            return null;
+        }
+
+        country.setOutlineImage(findImagePath(countryFolder, "Umriss"));
+        country.setLocationImage(findImagePath(countryFolder, "Lage"));
+        country.setFlagImage(findImagePath(countryFolder, "Flagge"));
+
+        // Lade Excel-Daten
+        Map<String, String> facts = excelData.get(countryName);
+        if (facts != null) {
+            facts.forEach(country::addAttribute);
+        } else {
+            country.addAttribute("Hinweis", "Keine Excel-Daten gefunden für dieses Land.");
+        }
+        return country;
+    }
+
+    /**
+     * Lädt ein Land basierend auf der CountryInfo Schnittstelle (Rückwärtskompatibilität)
+     * @deprecated Verwende getRepository().getCountry(name) statt dessen
+     */
+    @Deprecated
+    public CountryInfo loadCountryInfo_Old(String countryName) {
         CountryInfo info = new CountryInfo(countryName);
         Path countryFolder = countriesDir.resolve(countryName);
         if (!Files.isDirectory(countryFolder)) {
@@ -157,12 +210,12 @@ public class DataManager {
         for (int i = 0; i < roundCount; i++) {
             System.out.print("Land eingeben: ");
             String country = scanner.nextLine().trim();
-            CountryInfo info = loadCountryInfo(country);
-            if (info == null) {
+            Country countryInfo = loadCountryInfo(country);
+            if (countryInfo == null) {
                 System.out.println("Land nicht gefunden: " + country);
                 continue;
             }
-            printCountryInfo(info);
+            printCountryInfo(countryInfo);
         }
     }
 
@@ -205,7 +258,7 @@ public class DataManager {
         }
     }
 
-    private void printCountryInfo(CountryInfo info) {
+    private void printCountryInfo(Country info) {
         System.out.println("--- Informationen für " + info.getName() + " ---");
         info.getAttributes().forEach((key, value) -> System.out.println(key + ": " + value));
         System.out.println("Umriss: " + displayPath(info.getOutlineImage()));
